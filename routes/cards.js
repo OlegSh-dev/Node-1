@@ -1,12 +1,18 @@
-const cards = require('../data/cards'); // импортируем данные о карточках из json-файла
+const cards = require('express').Router();
 
-/**
- * возвращает json со списком карточек
- * @param {Object} req - объект запроса
- * @param {Object} res - объект ответа
- */
-const getCards = (req, res) => {
-  res.send(cards);
-};
+const {
+  getCards,
+  createCard,
+  deleteCard,
+  makeLike,
+  removeLike,
+} = require('../controllers/cards');
 
-module.exports = getCards;
+
+cards.get('/cards', getCards);
+cards.post('/cards', createCard);
+cards.delete('/cards/:cardId', deleteCard);
+cards.put('/cards/:cardId/likes', makeLike);
+cards.delete('/cards/:cardId/likes', removeLike);
+
+module.exports = cards;
