@@ -32,7 +32,12 @@ const createCard = (req, res) => {
  */
 const deleteCard = (req, res) => {
   Card.findByIdAndRemove(req.params.cardId)
-    .then((card) => res.send(card))
+    .then((card) => {
+      if (!card) {
+        return res.status(404).json({ message: 'Нет карточки с таким id' });
+      }
+      return res.send(card);
+    })
     .catch((err) => {
       if (err.status >= 500) {
         return res.status(500).send({ message: `Произошла ошибка сервера ${err}` });
@@ -53,7 +58,12 @@ const makeLike = (req, res) => {
     { $addToSet: { likes: req.user._id } }, // добавить _id в массив, если его там нет
     { new: true },
   )
-    .then((card) => res.send(card))
+    .then((card) => {
+      if (!card) {
+        return res.status(404).json({ message: 'Нет карточки с таким id' });
+      }
+      return res.send(card);
+    })
     .catch((err) => res.status(500).send({ message: `Произошла ошибка сервера ${err}` }));
 };
 
@@ -68,7 +78,12 @@ const removeLike = (req, res) => {
     { $pull: { likes: req.user._id } }, // убрать _id из массива
     { new: true },
   )
-    .then((card) => res.send(card))
+    .then((card) => {
+      if (!card) {
+        return res.status(404).json({ message: 'Нет карточки с таким id' });
+      }
+      return res.send(card);
+    })
     .catch((err) => res.status(500).send({ message: `Произошла ошибка сервера ${err}` }));
 };
 

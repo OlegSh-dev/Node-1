@@ -18,7 +18,12 @@ const getUsers = (req, res) => {
  */
 const getOneUser = (req, res) => {
   User.findById(req.params.id)
-    .then((user) => res.send(user))
+    .then((user) => {
+      if (!user) {
+        return res.status(404).json({ message: 'Нет пользователя с таким id' });
+      }
+      return res.send(user);
+    })
     .catch((err) => {
       if (err.status >= 500) {
         return res.status(500).send({ message: `Произошла ошибка сервера ${err}` });
@@ -53,7 +58,12 @@ const updateUser = (req, res) => {
   const { _id } = req.user;
 
   User.findByIdAndUpdate(_id, { name, about })
-    .then((user) => res.send(user))
+    .then((user) => {
+      if (!user) {
+        return res.status(404).json({ message: 'Нет пользователя с таким id' });
+      }
+      return res.send(user);
+    })
     .catch((err) => res.status(500).send({ message: `Произошла ошибка сервера ${err}` }));
 };
 
@@ -68,7 +78,12 @@ const updateAvatar = (req, res) => {
   const { _id } = req.user;
 
   User.findByIdAndUpdate(_id, { avatar })
-    .then((user) => res.send(user))
+    .then((user) => {
+      if (!user) {
+        return res.status(404).json({ message: 'Нет пользователя с таким id' });
+      }
+      return res.send(user);
+    })
     .catch((err) => res.status(500).send({ message: `Произошла ошибка сервера ${err}` }));
 };
 
