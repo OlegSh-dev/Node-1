@@ -54,7 +54,7 @@ const createUser = (req, res) => {
     return res.status(500).send({ message: 'Длина пароля меньше 5 символов' });
   }
 
-  bcrypt.hash(password, 10)
+  return bcrypt.hash(password, 10)
     .then((hash) => User.create({
       name,
       avatar,
@@ -62,8 +62,12 @@ const createUser = (req, res) => {
       email,
       password: hash,
     }))
-    // вернём записанные в базу данные
-    .then((user) => res.send({ data: user }))
+    // вернём записанные в базу данные без хэша
+    .then((user) => {
+      const userEdited = { ...user._doc };
+      delete userEdited.password;
+      return res.send({ data: userEdited });
+    })
     // данные не записались, вернём ошибку
     .catch((err) => res.status(500).send({ message: `Произошла ошибка сервера ${err}` }));
 };
@@ -117,6 +121,7 @@ const login = (req, res) => {
         .cookie('jwt', token, {
           maxAge: 3600000 * 24 * 7,
           httpOnly: true,
+          sameSite: true,
         })
         .end();
     })

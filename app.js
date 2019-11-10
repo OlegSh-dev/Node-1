@@ -1,6 +1,8 @@
 const express = require('express'); // подключаем фреймворк
 const mongoose = require('mongoose'); // подключаем ODM для работы с MongoDB
 // const path = require('path');
+const helmet = require('helmet'); // мидлвара для автоматической установки необходимых заголовков для безопасности
+
 const bodyParser = require('body-parser'); // подключаем парсер для обработки тела запросов
 
 const app = express(); // создаем приложение
@@ -19,6 +21,8 @@ const page404 = require('./routes/page404'); // подключаем роуте�
 // все запросы будут парситься из json
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+app.use(helmet());
 
 // создаем коннект с БД
 mongoose.connect('mongodb://localhost:27017/mestodb', {
