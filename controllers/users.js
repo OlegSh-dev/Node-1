@@ -1,3 +1,6 @@
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+
 const User = require('../models/user'); // импортируем модель
 
 /**
@@ -39,9 +42,26 @@ const getOneUser = (req, res) => {
  * @param {Object} res - объект ответа
  */
 const createUser = (req, res) => {
-  const { name, avatar, about } = req.body;
+  const {
+    name,
+    avatar,
+    about,
+    email,
+    password,
+  } = req.body;
 
-  User.create({ name, avatar, about })
+  if (password.trim().length < 5) {
+    return res.status(500).send({ message: 'Длина пароля меньше 5 символов' });
+  }
+
+  bcrypt.hash(password, 10)
+    .then((hash) => User.create({
+      name,
+      avatar,
+      about,
+      email,
+      password: hash,
+    }))
     // вернём записанные в базу данные
     .then((user) => res.send({ data: user }))
     // данные не записались, вернём ошибку
@@ -72,7 +92,6 @@ const updateUser = (req, res) => {
  * @param {Object} req - объект запроса
  * @param {Object} res - объект ответа
  */
-
 const updateAvatar = (req, res) => {
   const { avatar } = req.body;
   const { _id } = req.user;
@@ -87,10 +106,30 @@ const updateAvatar = (req, res) => {
     .catch((err) => res.status(500).send({ message: `Произошла ошибка сервера ${err}` }));
 };
 
+
+const login = (req, res) => {
+  const { email, password } = req.body;
+
+  return User.findUserByCredentials(email, password)
+    .then((user) => {
+      const token = jwt.sign({ _id: user._id }, 'secret-key', { expiresIn: '7d' });
+      res
+        .cookie('jwt', token, {
+          maxAge: 3600000 * 24 * 7,
+          httpOnly: true,
+        })
+        .end();
+    })
+    .catch((err) => {
+      res.status(401).send({ message: err.message });
+    });
+};
+
 module.exports = {
   getUsers,
   getOneUser,
   createUser,
   updateUser,
   updateAvatar,
+  login,
 };

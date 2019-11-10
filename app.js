@@ -7,18 +7,14 @@ const app = express(); // создаем приложение
 
 const { PORT = 3000 } = process.env;
 
+const auth = require('./middlewares/auth');
+
+const { createUser, login } = require('./controllers/users');
+const { getCards } = require('./controllers/cards');
+
 const users = require('./routes/users'); // подключаем роутер
 const cards = require('./routes/cards'); // подключаем роутер
 const page404 = require('./routes/page404'); // подключаем роутер
-
-// временная эмуляция авторизированного пользователя
-app.use((req, res, next) => {
-  req.user = {
-    _id: '5db2e31e2c1e683c7431d0e4',
-  };
-
-  next();
-});
 
 // все запросы будут парситься из json
 app.use(bodyParser.json());
@@ -34,6 +30,14 @@ mongoose.connect('mongodb://localhost:27017/mestodb', {
 
 // при обращении к адресу сервера возвращаем статику из папки public
 // app.use(express.static(path.join(__dirname, '/public')));
+
+app.post('/signin', login);
+app.post('/signup', createUser);
+
+// вынесли отдельно маршрут с получением всех карточек, чтобы он не был закрыт авторизацией
+app.get('/cards', getCards);
+
+app.use(auth);
 
 app.use(users); // используем роутер для отработки адресов - users
 app.use(cards); // используем роутер для отработки адресов - cards
