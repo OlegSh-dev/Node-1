@@ -1,3 +1,4 @@
+/* eslint-disable no-else-return */
 const Card = require('../models/card');
 
 /**
@@ -31,18 +32,23 @@ const createCard = (req, res) => {
  * @param {Object} res - объект ответа
  */
 const deleteCard = (req, res) => {
-  Card.findByIdAndRemove(req.params.cardId)
+  Card.findById(req.params.cardId)
     .then((card) => {
       if (!card) {
+        // для случая, когда id валидный, но его нет в базе
         return res.status(404).json({ message: 'Нет карточки с таким id' });
+      } else if (card.owner.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ message: 'Недостаточно прав' });
+      } else {
+        return Card.findByIdAndRemove(req.params.cardId)
+          .then((deletedCard) => res.send(deletedCard));
       }
-      return res.send(card);
     })
     .catch((err) => {
       if (err.status >= 500) {
         return res.status(500).send({ message: `Произошла ошибка сервера ${err}` });
       }
-      // если такой карточки нет, то возвращаем статус 404 и json-объект с сообщением
+      // для случая, когда id невалидный
       return res.status(404).json({ message: 'Нет карточки с таким id' });
     });
 };
