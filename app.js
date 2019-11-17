@@ -1,9 +1,11 @@
+require('dotenv').config();
+
 const express = require('express'); // подключаем фреймворк
 const mongoose = require('mongoose'); // подключаем ODM для работы с MongoDB
 
 const helmet = require('helmet'); // мидлвара для автоматической установки необходимых заголовков для безопасности
 const bodyParser = require('body-parser'); // подключаем парсер для обработки тела запросов
-const { errors } = require('celebrate');
+const { celebrate, Joi, errors } = require('celebrate');
 
 const app = express(); // создаем приложение
 
@@ -41,8 +43,22 @@ app.get('/crash-test', () => {
   }, 0);
 });
 
-app.post('/signin', login);
-app.post('/signup', createUser);
+app.post('/signin', celebrate({
+  body: Joi.object().keys({
+    name: Joi.string().required().min(2).max(30),
+    about: Joi.string().required().min(2).max(30),
+    avatar: Joi.string().required().regex(/https?:\/\/(?:[-\w]+\.)?([-\w]+)\.\w+(?:\.\w+)?\/?.*/),
+    email: Joi.string().required().email(),
+    password: Joi.string().required().min(5),
+  }),
+}), login);
+
+app.post('/signup', celebrate({
+  body: Joi.object().keys({
+    email: Joi.string().required().email(),
+    password: Joi.string().required().min(5),
+  }),
+}), createUser);
 
 // вынесли отдельно маршрут с получением всех карточек, чтобы он не был закрыт авторизацией
 app.get('/cards', getCards);
