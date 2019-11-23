@@ -1,10 +1,12 @@
+const NotFoundError = require('../errors/not-found-err');
+
 /**
  * возвращает статус 404 и json с сообщением
  * @param {Object} req - объект запроса
  * @param {Object} res - объект ответа
  */
-const sendError = (req, res) => {
-  res.status(404).json({ message: 'Запрашиваемый ресурс не найден' });
+const sendError = (req, res, next) => {
+  next(new NotFoundError('Запрашиваемый ресурс не найден'));
 };
 
 module.exports = sendError;

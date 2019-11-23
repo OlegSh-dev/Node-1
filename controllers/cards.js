@@ -1,15 +1,18 @@
 /* eslint-disable no-else-return */
 const Card = require('../models/card');
 
+const NotFoundError = require('../errors/not-found-err');
+const RightsError = require('../errors/rights-err');
+
 /**
  * возвращает из БД все карточки
  * @param {Object} req - объект запроса
  * @param {Object} res - объект ответа
  */
-const getCards = (req, res) => {
+const getCards = (req, res, next) => {
   Card.find({})
     .then((cards) => res.send(cards))
-    .catch((err) => res.status(500).send({ message: `Произошла ошибка сервера ${err}` }));
+    .catch(next);
 };
 
 /**
@@ -17,13 +20,13 @@ const getCards = (req, res) => {
  * @param {Object} req - объект запроса
  * @param {Object} res - объект ответа
  */
-const createCard = (req, res) => {
+const createCard = (req, res, next) => {
   const { name, link } = req.body;
   const { _id } = req.user;
 
   Card.create({ name, link, owner: _id })
     .then((card) => res.send(card))
-    .catch((err) => res.status(500).send({ message: `Произошла ошибка сервера ${err}` }));
+    .catch(next);
 };
 
 /**
@@ -31,26 +34,21 @@ const createCard = (req, res) => {
  * @param {Object} req - объект запроса
  * @param {Object} res - объект ответа
  */
-const deleteCard = (req, res) => {
+const deleteCard = (req, res, next) => {
   Card.findById(req.params.cardId)
     .then((card) => {
       if (!card) {
         // для случая, когда id валидный, но его нет в базе
-        return res.status(404).json({ message: 'Нет карточки с таким id' });
+        throw new NotFoundError('Нет карточки с таким id');
       } else if (card.owner.toString() !== req.user._id.toString()) {
-        return res.status(403).json({ message: 'Недостаточно прав' });
+        throw new RightsError('Недостаточно прав');
       } else {
         return Card.findByIdAndRemove(req.params.cardId)
-          .then((deletedCard) => res.send(deletedCard));
+          .then((deletedCard) => res.send(deletedCard))
+          .catch(next);
       }
     })
-    .catch((err) => {
-      if (err.status >= 500) {
-        return res.status(500).send({ message: `Произошла ошибка сервера ${err}` });
-      }
-      // для случая, когда id невалидный
-      return res.status(404).json({ message: 'Нет карточки с таким id' });
-    });
+    .catch(next);
 };
 
 /**
@@ -58,7 +56,7 @@ const deleteCard = (req, res) => {
  * @param {Object} req - объект запроса
  * @param {Object} res - объект ответа
  */
-const makeLike = (req, res) => {
+const makeLike = (req, res, next) => {
   Card.findByIdAndUpdate(
     req.params.cardId,
     { $addToSet: { likes: req.user._id } }, // добавить _id в массив, если его там нет
@@ -66,11 +64,11 @@ const makeLike = (req, res) => {
   )
     .then((card) => {
       if (!card) {
-        return res.status(404).json({ message: 'Нет карточки с таким id' });
+        throw new NotFoundError('Нет карточки с таким id');
       }
       return res.send(card);
     })
-    .catch((err) => res.status(500).send({ message: `Произошла ошибка сервера ${err}` }));
+    .catch(next);
 };
 
 /**
@@ -78,7 +76,7 @@ const makeLike = (req, res) => {
  * @param {Object} req - объект запроса
  * @param {Object} res - объект ответа
  */
-const removeLike = (req, res) => {
+const removeLike = (req, res, next) => {
   Card.findByIdAndUpdate(
     req.params.cardId,
     { $pull: { likes: req.user._id } }, // убрать _id из массива
@@ -86,11 +84,11 @@ const removeLike = (req, res) => {
   )
     .then((card) => {
       if (!card) {
-        return res.status(404).json({ message: 'Нет карточки с таким id' });
+        throw new NotFoundError('Нет карточки с таким id');
       }
       return res.send(card);
     })
-    .catch((err) => res.status(500).send({ message: `Произошла ошибка сервера ${err}` }));
+    .catch(next);
 };
 
 module.exports = {

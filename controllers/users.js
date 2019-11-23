@@ -1,6 +1,8 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
+const NotFoundError = require('../errors/not-found-err');
+
 const User = require('../models/user'); // импортируем модель
 
 /**
@@ -8,10 +10,10 @@ const User = require('../models/user'); // импортируем модель
  * @param {Object} req - объект запроса
  * @param {Object} res - объект ответа
  */
-const getUsers = (req, res) => {
+const getUsers = (req, res, next) => {
   User.find({})
     .then((users) => res.send(users))
-    .catch((err) => res.status(500).send({ message: `Произошла ошибка сервера ${err}` }));
+    .catch(next);
 };
 
 /**
@@ -19,21 +21,15 @@ const getUsers = (req, res) => {
  * @param {Object} req - объект запроса
  * @param {Object} res - объект ответа
  */
-const getOneUser = (req, res) => {
+const getOneUser = (req, res, next) => {
   User.findById(req.params.id)
     .then((user) => {
       if (!user) {
-        return res.status(404).json({ message: 'Нет пользователя с таким id' });
+        throw new NotFoundError('Нет пользователя с таким id');
       }
       return res.send(user);
     })
-    .catch((err) => {
-      if (err.status >= 500) {
-        return res.status(500).send({ message: `Произошла ошибка сервера ${err}` });
-      }
-      // если пользователя нет, то возвращаем статус 404 и json с сообщением
-      return res.status(404).json({ message: 'Нет пользователя с таким id' });
-    });
+    .catch(next);
 };
 
 /**
@@ -41,7 +37,7 @@ const getOneUser = (req, res) => {
  * @param {Object} req - объект запроса
  * @param {Object} res - объект ответа
  */
-const createUser = (req, res) => {
+const createUser = (req, res, next) => {
   const {
     name,
     avatar,
@@ -69,7 +65,7 @@ const createUser = (req, res) => {
       return res.send({ data: userEdited });
     })
     // данные не записались, вернём ошибку
-    .catch((err) => res.status(500).send({ message: `Произошла ошибка сервера ${err}` }));
+    .catch(next);
 };
 
 /**
@@ -77,18 +73,18 @@ const createUser = (req, res) => {
  * @param {Object} req - объект запроса
  * @param {Object} res - объект ответа
  */
-const updateUser = (req, res) => {
+const updateUser = (req, res, next) => {
   const { name, about } = req.body;
   const { _id } = req.user;
 
   User.findByIdAndUpdate(_id, { name, about })
     .then((user) => {
       if (!user) {
-        return res.status(404).json({ message: 'Нет пользователя с таким id' });
+        throw new NotFoundError('Нет пользователя с таким id');
       }
       return res.send(user);
     })
-    .catch((err) => res.status(500).send({ message: `Произошла ошибка сервера ${err}` }));
+    .catch(next);
 };
 
 /**
@@ -96,27 +92,32 @@ const updateUser = (req, res) => {
  * @param {Object} req - объект запроса
  * @param {Object} res - объект ответа
  */
-const updateAvatar = (req, res) => {
+const updateAvatar = (req, res, next) => {
   const { avatar } = req.body;
   const { _id } = req.user;
 
   User.findByIdAndUpdate(_id, { avatar })
     .then((user) => {
       if (!user) {
-        return res.status(404).json({ message: 'Нет пользователя с таким id' });
+        throw new NotFoundError('Нет пользователя с таким id');
       }
       return res.send(user);
     })
-    .catch((err) => res.status(500).send({ message: `Произошла ошибка сервера ${err}` }));
+    .catch(next);
 };
 
-
+/**
+ * вход в сервис с использованием логина и пароля, отправляет куку с токеном в ответ
+ * @param {*} req - объект запроса
+ * @param {*} res - объект ответа
+ */
 const login = (req, res) => {
   const { email, password } = req.body;
+  const { NODE_ENV, JWT_SECRET } = process.env;
 
   return User.findUserByCredentials(email, password)
     .then((user) => {
-      const token = jwt.sign({ _id: user._id }, 'secret-key', { expiresIn: '7d' });
+      const token = jwt.sign({ _id: user._id }, NODE_ENV === 'production' ? JWT_SECRET : 'secret-key', { expiresIn: '7d' });
       res
         .cookie('jwt', token, {
           maxAge: 3600000 * 24 * 7,
